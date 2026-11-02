@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExperimentRegistrySchema",
+  "description": "Standard schema for multi-version micro-experiment ledger and traceability in geospatial and machine learning workflows.",
+  "type": "object",
+  "required": ["project_name", "updated_at", "experiments"],
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "Name of the research project or thesis module"
+    },
+    "project_description": {
+      "type": "string",
+      "description": "High-level goal and background of the project"
+    },
+    "baseline_exp_id": {
+      "type": "string",
+      "description": "Identifier of the reference baseline experiment (e.g., v0 / RF baseline)"
+    },
+    "active_exp_id": {
+      "type": "string",
+      "description": "Currently active or latest production experiment ID"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "experiments": {
+      "type": "array",
+      "description": "Chronological or versioned list of all micro-experiments",
+      "items": {
+        "$ref": "#/definitions/ExperimentRecord"
+      }
+    }
+  },
+  "definitions": {
+    "ExperimentRecord": {
+      "type": "object",
+      "required": ["exp_id", "version", "name", "timestamp", "verdict", "metrics"],
+      "properties": {
+        "exp_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Unique slug for the experiment run, e.g. 'exp01_rf_baseline'"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version label, e.g. 'v0', 'v1.0', 'v2.1'"
+        },
+        "name": {
+          "type": "string",
+          "description": "Short descriptive title of the experiment"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO date-time or YYYY-MM-DD HH:MM string"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author or Agent identifier (e.g. 'Agent-C1', 'Claude-Opus-5.5')"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["baseline", "ablation", "feature_engineering", "model_architecture", "post_processing", "spatial_scaling", "production"],
+          "default": "ablation"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["PASS", "CHECK", "FAIL", "RUNNING", "ARCHIVED"],
+          "description": "Overall review gate verdict"
+        },
+        "commit_hash": {
+          "type": "string",
+          "description": "Git commit or workspace revision snapshot"
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Hypothesis, motivation, or root-cause problem addressed in this run"
+        },
+        "treatment": {
+          "type": "string",
+          "description": "Detailed explanation of changes made and treatment effect"
+        },
+        "config": {
+          "type": "object",
+          "description": "Hyperparameters, model type, feature bands, loss weights, etc.",
+          "additionalProperties": true
+        },
+        "dataset": {
+          "type": "object",
+          "properties": {
+            "spatial_scope": { "type": "string" },
+            "time_range": { "type": "string" },
+            "n_train": { "type": "integer" },
+            "n_val": { "type": "integer" },
+            "tiles": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "required": ["overall_accuracy"],
+          "properties": {
+            "overall_accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
+            "kappa": { "type": "number" },
+            "macro_f1": { "type": "number", "minimum": 0, "maximum": 1 },
+            "class_f1": {
+              "type": "object",
+              "additionalProperties": { "type": "number" },
+              "description": "Per-class F1 scores (e.g. PF, NF, OT)"
+            },
+            "transition_rate": {
+              "type": "number",
+              "description": "Mean annual pixel class jitter/transition rate (0~1)"
+            },
+            "seam_ratio": {
+              "type": "number",
+              "description": "Boundary stitch discontinuity ratio (<=1.20 for pass)"
+            },
+            "custom": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "gates": {
+          "type": "array",
+          "description": "Hard audit gates evaluated on this version",
+          "items": {
+            "type": "object",
+            "required": ["name", "threshold", "measured", "passed"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "threshold": { "type": "string" },
+              "measured": { "type": "string" },
+              "passed": { "type": "boolean" },
+              "note": { "type": "string" }
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "description": "Representative qualitative case studies / spatial tiles with visual evidence",
+          "items": {
+            "type": "object",
+            "required": ["tile_id", "title"],
+            "properties": {
+              "tile_id": { "type": "string" },
+              "title": { "type": "string" },
+              "location": { "type": "string" },
+              "root_cause": { "type": "string" },
+              "effect": { "type": "string" },
+              "image_b64": { "type": "string" },
+              "image_path": { "type": "string" },
+              "stats": { "type": "object" }
+            }
+          }
+        },
+        "artifacts": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    }
+  }
+}

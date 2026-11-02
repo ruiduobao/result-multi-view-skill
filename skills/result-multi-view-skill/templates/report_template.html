@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{PROJECT_NAME}} - 多版本实验结果综合审核全景看板</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0a0f1d;
+      --bg-card: #131b2e;
+      --bg-card-sub: #1b2640;
+      --bg-glass: rgba(19, 27, 46, 0.88);
+      --border-card: #23314f;
+      --border-highlight: #3b82f6;
+      --text-main: #f1f5f9;
+      --text-sub: #94a3b8;
+      --text-muted: #64748b;
+      --accent-cyan: #06b6d4;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-emerald: #059669;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-dark: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-sub: #f1f5f9;
+      --bg-glass: rgba(255, 255, 255, 0.90);
+      --border-card: #e2e8f0;
+      --border-highlight: #2563eb;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+      padding-bottom: 60px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Sticky Glass Navigation */
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-card);
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+    .nav-links a {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent-cyan); }
+    .theme-btn {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 28px;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .hero-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .hero-desc {
+      color: var(--text-sub);
+      font-size: 0.98rem;
+      max-width: 960px;
+      margin-bottom: 14px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 20px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      flex-wrap: wrap;
+    }
+
+    /* Status Tags */
+    .tag-pass {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .tag-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .tag-fail {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: var(--border-highlight);
+      opacity: 0.7;
+    }
+    .kpi-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 1.95rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .kpi-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Section Styling */
+    .section-head {
+      margin: 36px 0 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--border-card);
+      padding-bottom: 10px;
+    }
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: var(--accent-cyan);
+      border-radius: 2px;
+    }
+    .section-desc {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    /* Version Selector & Filter Bar */
+    .filter-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 10px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+    .filter-select, .filter-input {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-card);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      outline: none;
+    }
+    .filter-select:focus, .filter-input:focus {
+      border-color: var(--border-highlight);
+    }
+
+    /* Charts Row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 960px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .chart-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 14px;
+    }
+
+    /* Three-Way Comparison Table (from report_v2_eco_synthesis.html) */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-bottom: 28px;
+    }
+    .threeway-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    .threeway-table th {
+      background: var(--bg-card-sub);
+      color: var(--text-sub);
+      font-weight: 700;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-card);
+      white-space: nowrap;
+    }
+    .threeway-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-card);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+    .threeway-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .val-v0 { color: #94a3b8; font-family: var(--font-mono); }
+    .val-v1 { color: #f59e0b; font-family: var(--font-mono); }
+    .val-v2 { color: #10b981; font-family: var(--font-mono); font-weight: 700; }
+
+    /* Case Study Cards (from report_v2_eco_synthesis.html) */
+    .case-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .case-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .case-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-highlight);
+    }
+    .case-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .case-header h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .case-badge {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border-card);
+      color: var(--accent-cyan);
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .case-preview {
+      width: 100%;
+      height: 240px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .case-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      cursor: zoom-in;
+    }
+    .case-card p {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+    .case-card b {
+      color: var(--text-main);
+    }
+    .case-stats {
+      background: var(--bg-card-sub);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      color: var(--text-sub);
+    }
+
+    /* Board Module */
+    .board-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .board-preview-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-card);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    /* Modal for Image Zoom */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0; width: 100%; height: 100%;
+      background: rgba(10, 15, 29, 0.92);
+      backdrop-filter: blur(8px);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      border: 1px solid var(--border-card);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    }
+    .modal-close {
+      position: absolute;
+      top: 24px; right: 32px;
+      color: #fff;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Glass Navigation -->
+  <nav class="sticky-nav">
+    <div class="brand">
+      <span>🔬 Multi-View Audit System</span>
+      <span class="brand-badge">{{ACTIVE_VERSION}}</span>
+    </div>
+    <div class="nav-links">
+      <a href="#kpi">KPI概览</a>
+      <a href="#evolution">历程演进</a>
+      <a href="#comparison">三版本对比</a>
+      <a href="#cases">切片画廊</a>
+      <a href="#board">300DPI图板</a>
+      <a href="#ledger">账本JSON</a>
+      <button class="theme-btn" onclick="toggleTheme()">🌓 切换主题</button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+      <div class="hero-title">
+        <span>{{PROJECT_NAME}}</span>
+        <span class="{{ 'tag-pass' if ACTIVE_VERDICT == 'PASS' else 'tag-warn' }}">{{ACTIVE_VERDICT}} 准予上线</span>
+      </div>
+      <p class="hero-desc">{{PROJECT_DESCRIPTION}}</p>
+      <div class="hero-meta">
+        <span>🕒 更新时间: {{UPDATED_AT}}</span>
+        <span>🏷️ 终审版本: {{ACTIVE_VERSION}}</span>
+        <span>🧪 累计实验: {{TOTAL_EXPERIMENTS}} 次</span>
+        <span>🎯 审核定稿依据: {{ACTIVE_RATIONALE}}</span>
+      </div>
+    </div>
+
+    <!-- KPI Grid -->
+    <section id="kpi">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">累计实验版本数</div>
+          <div class="kpi-value">{{TOTAL_EXPERIMENTS}}</div>
+          <div class="kpi-subtitle"><span>审核通过: {{PASS_COUNT}} 次</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">终版总体精度 (OA)</div>
+          <div class="kpi-value">{{ACTIVE_OA}}</div>
+          <div class="kpi-subtitle"><span class="tag-pass">↑ 全场最高</span> <span>无标签泄漏</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">终版 Kappa 系数</div>
+          <div class="kpi-value">{{ACTIVE_KAPPA}}</div>
+          <div class="kpi-subtitle"><span>高统计一致性</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">宏平均 Macro-F1</div>
+          <div class="kpi-value">{{ACTIVE_MACRO_F1}}</div>
+          <div class="kpi-subtitle"><span>兼顾稀有地类</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Version Evolution & Distribution Charts -->
+    <section id="evolution">
+      <div class="section-head">
+        <div>
+          <div class="section-title">实验全历程演进与参数追溯 (Trajectory & Audit)</div>
+          <div class="section-desc">数十次微实验的迭代演化路径、模型调优收益与硬门禁遵从情况</div>
+        </div>
+      </div>
+
+      <!-- Filter / Switcher Bar -->
+      <div class="filter-bar">
+        <span class="filter-label">🔍 焦点版本审查:</span>
+        <select id="versionSelect" class="filter-select" onchange="onVersionChange(this.value)">
+          <!-- Populated by JavaScript -->
+        </select>
+        <span id="versionDetailBadge" style="font-size:0.8rem; color:var(--accent-cyan); font-family:var(--font-mono);"></span>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>📈 精度与一致性演进曲线 (OA vs Kappa)</h3>
+          <div style="height: 320px;">
+            <canvas id="evolutionChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>🎯 核心地类 F1-Score 跨版本对比</h3>
+          <div style="height: 320px;">
+            <canvas id="classF1Chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Three-Way Comparison Table (V0 vs V1 vs V2) -->
+    <section id="comparison">
+      <div class="section-head">
+        <div>
+          <div class="section-title">多版本深度对比数据表 (3-Way Version Audit Table)</div>
+          <div class="section-desc">基准版 (V0) vs 历程迭代版 (V1) vs 最终生产版 (V2) 的定量指标差分与门禁核验</div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="threeway-table">
+          <thead>
+            <tr>
+              <th>审计指标与评测维度</th>
+              <th>规则/机理分类</th>
+              <th>V0 (原始基准)</th>
+              <th>V1 (历程调优)</th>
+              <th>V2 (当前终版)</th>
+              <th>最终裁决与影响</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{THREEWAY_ROWS_HTML}}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Case Study & Qualitative Tile Gallery -->
+    <section id="cases">
+      <div class="section-head">
+        <div>
+          <div class="section-title">典型定性切片与边界画廊 (Visual Cases & Seam Inspection)</div>
+          <div class="section-desc">包含 30m 原生分辨率边界红十字放大镜、假性闪烁抑制对比与典型样地定性核查</div>
+        </div>
+      </div>
+
+      <div class="case-grid">
+        {{CASE_CARDS_HTML}}
+      </div>
+    </section>
+
+    <!-- 300 DPI Publication Board -->
+    <section id="board">
+      <div class="section-head">
+        <div>
+          <div class="section-title">学术报告级 300 DPI 综合全景看板图板 (Publication Board)</div>
+          <div class="section-desc">可直接用于学位论文、中期检查 PPT 与技术汇报的出版级高分辨率全景成果总图</div>
+        </div>
+      </div>
+
+      <div class="board-container">
+        <img class="board-preview-img" src="{{BOARD_IMAGE_B64}}" alt="300 DPI 综合全景看板" onclick="zoomImage(this.src)">
+      </div>
+    </section>
+
+    <!-- Raw Ledger JSON -->
+    <section id="ledger">
+      <div class="section-head">
+        <div>
+          <div class="section-title">实验完整账本数据 (Ledger JSON Data)</div>
+          <div class="section-desc">记录每次小实验的唯一 ID、超参数快照、作者、提交哈希与门禁详情</div>
+        </div>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border-card); border-radius:10px; padding:16px;">
+        <pre id="rawJsonView" style="max-height:300px; overflow-y:auto; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-sub);"></pre>
+      </div>
+    </section>
+
+    <footer>
+      <p>result-multi-view-skill · 遥感数据生产与机器学习实验追溯审计系统 · 遵循 AGENTS.md 与 dataviz 规范</p>
+    </footer>
+
+  </div>
+
+  <!-- Modal for Fullscreen Image Zoom -->
+  <div id="imageModal" class="modal" onclick="closeModal()">
+    <span class="modal-close">&times;</span>
+    <img id="modalImg" class="modal-content" src="">
+  </div>
+
+  <script>
+    // Injected Experiments Data
+    const experimentsData = {{EXPERIMENTS_JSON}};
+
+    // Theme Toggle
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+    }
+
+    // Modal Zoom
+    function zoomImage(src) {
+      if (!src) return;
+      const modal = document.getElementById("imageModal");
+      const modalImg = document.getElementById("modalImg");
+      modalImg.src = src;
+      modal.style.display = "flex";
+    }
+    function closeModal() {
+      document.getElementById("imageModal").style.display = "none";
+    }
+
+    // Populate Version Selector
+    const selectElem = document.getElementById("versionSelect");
+    experimentsData.forEach(exp => {
+      const opt = document.createElement("option");
+      opt.value = exp.exp_id;
+      opt.textContent = `${exp.version || exp.exp_id}: ${exp.name} (${exp.verdict})`;
+      selectElem.appendChild(opt);
+    });
+
+    if (experimentsData.length > 0) {
+      selectElem.value = experimentsData[experimentsData.length - 1].exp_id;
+      onVersionChange(selectElem.value);
+    }
+
+    function onVersionChange(expId) {
+      const exp = experimentsData.find(e => e.exp_id === expId);
+      if (!exp) return;
+      const badge = document.getElementById("versionDetailBadge");
+      badge.textContent = `[${exp.category}] 作者: ${exp.author} | 时间: ${exp.timestamp} | 判定: ${exp.verdict} | OA: ${(exp.metrics.overall_accuracy*100).toFixed(2)}%`;
+    }
+
+    // Render Raw JSON view
+    document.getElementById("rawJsonView").textContent = JSON.stringify(experimentsData, null, 2);
+
+    // Initialize Chart.js Evolution Charts
+    window.addEventListener("DOMContentLoaded", () => {
+      const labels = experimentsData.map(e => e.version || e.exp_id);
+      const oaData = experimentsData.map(e => (e.metrics.overall_accuracy * 100).toFixed(2));
+      const kappaData = experimentsData.map(e => (e.metrics.kappa * 100).toFixed(2));
+
+      // 1. Evolution Chart
+      const ctxEvo = document.getElementById("evolutionChart").getContext("2d");
+      new Chart(ctxEvo, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "总体精度 OA (%)",
+              data: oaData,
+              borderColor: "#06b6d4",
+              backgroundColor: "rgba(6, 182, 212, 0.1)",
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              fill: true
+            },
+            {
+              label: "Kappa 系数 (x100)",
+              data: kappaData,
+              borderColor: "#3b82f6",
+              borderDash: [5, 5],
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              ticks: { color: "#94a3b8", font: { size: 10 } }
+            },
+            y: {
+              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              ticks: { color: "#94a3b8", font: { size: 10 } }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: "#f1f5f9", font: { size: 11 } } },
+            tooltip: { backgroundColor: "#1b2640", titleColor: "#06b6d4", bodyColor: "#f1f5f9" }
+          }
+        }
+      });
+
+      // 2. Class F1 Chart (Compare First vs Last)
+      const firstExp = experimentsData[0];
+      const lastExp = experimentsData[experimentsData.length - 1];
+      const classes = ["PF", "NF", "OT"];
+      const classLabels = ["种植园 (PF)", "自然林 (NF)", "非林 (OT)"];
+
+      const f1First = classes.map(c => (firstExp.metrics.class_f1?.[c] || 0).toFixed(3));
+      const f1Last = classes.map(c => (lastExp.metrics.class_f1?.[c] || 0).toFixed(3));
+
+      const ctxF1 = document.getElementById("classF1Chart").getContext("2d");
+      new Chart(ctxF1, {
+        type: "bar",
+        data: {
+          labels: classLabels,
+          datasets: [
+            {
+              label: `基准: ${firstExp.version || firstExp.exp_id}`,
+              data: f1First,
+              backgroundColor: "rgba(100, 116, 139, 0.7)"
+            },
+            {
+              label: `终版: ${lastExp.version || lastExp.exp_id}`,
+              data: f1Last,
+              backgroundColor: ["#1f77b4", "#2ca02c", "#b0b0b0"]
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              ticks: { color: "#94a3b8", font: { size: 10 } }
+            },
+            y: {
+              min: 0, max: 1.05,
+              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              ticks: { color: "#94a3b8", font: { size: 10 } }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: "#f1f5f9", font: { size: 10 } } },
+            tooltip: { backgroundColor: "#1b2640", titleColor: "#06b6d4", bodyColor: "#f1f5f9" }
+          }
+        }
+      });
+
+    });
+  </script>
+</body>
+</html>
